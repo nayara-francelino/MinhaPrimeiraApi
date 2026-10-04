@@ -1,15 +1,28 @@
+using MinhaPrimeiraApi.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Adiciona os Controllers
 builder.Services.AddControllers();
 
-// Configuração do Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=minhaapi.db"));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirAngular", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
-// Habilita o Swagger no ambiente de desenvolvimento
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -19,6 +32,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseCors("PermitirAngular");
 
 app.MapControllers();
 

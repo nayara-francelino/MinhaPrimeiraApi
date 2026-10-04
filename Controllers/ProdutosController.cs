@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MinhaPrimeiraApi.Data;
 using MinhaPrimeiraApi.Models;
 
 namespace MinhaPrimeiraApi.Controllers
@@ -7,51 +9,87 @@ namespace MinhaPrimeiraApi.Controllers
     [Route("api/[controller]")]
     public class ProdutosController : ControllerBase
     {
-        private static readonly List<Produto> produtos = new()
-        {
-            new Produto { Id = 1, Nome = "Notebook", Preco = 3500 },
-            new Produto { Id = 2, Nome = "Mouse", Preco = 120 },
-            new Produto { Id = 3, Nome = "Teclado", Preco = 250 }
-        };
+        private readonly AppDbContext _context;
 
-        [HttpGet]
-        public IActionResult ListarTodos()
+        public ProdutosController(AppDbContext context)
         {
-            return Ok(produtos);
+            _context = context;
         }
 
-        [HttpGet("{id}")]
-        public IActionResult BuscarPorId(int id)
+        // GET: api/Produtos
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Produto>>> ListarTodos()
         {
-            var produto = produtos.FirstOrDefault(p => p.Id == id);
+            return await _context.Produtos.ToListAsync();
+        }
+
+        // GET: api/Produtos/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Produto>> BuscarPorId(int id)
+        {
+            var produto = await _context.Produtos.FindAsync(id);
 
             if (produto == null)
             {
                 return NotFound();
             }
 
-            return Ok(produto);
+            return produto;
         }
 
+        // POST: api/Produtos
         [HttpPost]
-        public IActionResult Criar(Produto produto)
+        public async Task<ActionResult<Produto>> Criar(Produto produto)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            produto.Id = produtos.Any()
-                ? produtos.Max(p => p.Id) + 1
-                : 1;
-
-            produtos.Add(produto);
+            _context.Produtos.Add(produto);
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(BuscarPorId),
                 new { id = produto.Id },
                 produto
             );
+        }
+
+        // PUT: api/Produtos/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Atualizar(int id, Produto produto)
+        {
+            var produtoExistente = await _context.Produtos.FindAsync(id);
+
+            if (produtoExistente == null)
+            {
+                return NotFound();
+            }
+
+            produtoExistente.Nome = produto.Nome;
+            produtoExistente.Preco = produto.Preco;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(produtoExistente);
+        }
+
+        // DELETE: api/Produtos/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Remover(int id)
+        {
+            var produto = await _context.Produtos.FindAsync(id);
+
+            if (produto == null)
+            {
+                return NotFound();
+            }
+
+            _context.Produtos.Remove(produto);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }
